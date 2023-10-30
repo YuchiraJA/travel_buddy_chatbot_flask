@@ -1,14 +1,29 @@
 import json
 import pickle
+import openai  # Import the OpenAI library
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-app = Flask(__name__)
-CORS(app)  # This enables CORS for all routes
-
-# Load the trained model
+	@@ -11,39 +10,18 @@
 with open('chatbot.dat', 'rb') as f:
     model = pickle.load(f)
+
+# Set up your OpenAI API key
+openai.api_key = "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"  # Replace with your actual OpenAI API key
+#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
+# Function to use the pre-trained model
+def use_trained_model(question):
+    predicted_answer = model.predict([question])[0]
+    return predicted_answer
+
+# Function to use the OpenAI API
+def use_openai_api(question):
+    response = openai.Completion.create(
+        engine="text-davinci-002",  # Choose an engine based on your requirements
+        prompt=question,
+        max_tokens=50  # Adjust the response length as needed
+    )
+    return response.choices[0].text
 
 # API endpoint to handle chatbot requests
 @app.route('/predict/chatbot', methods=['POST'])
@@ -16,8 +31,11 @@ def chatbot():
     data = request.get_json()  # Get the input data from the POST request
     text_data = data['question']  # Extract the 'question' from the input data
 
-    # Make prediction using the pre-trained model
-    predicted_answer = model.predict([text_data])[0]
+    # Check if the question is in the trained model
+    if text_data in model.classes_:
+        predicted_answer = use_trained_model(text_data)
+    else:
+        predicted_answer = use_openai_api(text_data)
 
     # Return the predicted answer as a JSON response
     response = {'answer': predicted_answer}
